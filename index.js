@@ -4,6 +4,9 @@ const app = express();
 const bodyParser = require('body-parser');
 const fileUpload = require('express-fileupload');
 
+const dpBox = require('./lib/dropbox/dropbox')
+
+
 const port = 3000;
 
 console.log(process.env);
@@ -89,18 +92,27 @@ app.use(express.json());
 app.use(express.urlencoded({extended: true}));
 
 app.get('/', (req, res) => {
-    dbx.filesListFolder({ path: '' })
-        .then(function (response) {
-            console.log('response', response.result.entries)
-            res.send(200, response.result.entries);
-        })
-        .catch(function (error) {
-            console.error(error);
+    let fileID = req.body.id;
+    dpBox.fileHandler.getFile(fileID).then(function(doc) {
+        const fs = require('fs');
+        let data = doc;
+        fs.writeFile(data.name, data.fileBinary, 'binary', (err) => {
+            if (err) { throw err; }
+            console.log(`File: ${data.name} saved.`);
+            res.send(200, `File: ${data.name} saved.`);
         });
+    }).catch(function(err) {
+        res.send(500, err);
+    });
+    
 });
 app.post('/upload', (req, res) => {
-    if (req.files.doc) {
-        uploadFile(req.files.doc, res);
+    if (req.files.doc && req.body.filePath) {
+        dpBox.fileHandler.uploadFile(req.body.filePath, req.files.doc).then(function(docJSon) {
+            res.send(200, docJSon);
+        }).catch(function(err) {
+            res.send(500, err);
+        });
     } else {
         res.send(500, "error");
     }
