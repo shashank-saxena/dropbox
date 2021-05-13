@@ -93,18 +93,17 @@ app.use(express.urlencoded({extended: true}));
 
 app.get('/', (req, res) => {
     let fileID = req.body.id;
-    dpBox.fileHandler.getFile(fileID).then(function(doc) {
-        const fs = require('fs');
-        let data = doc;
-        fs.writeFile(data.name, data.fileBinary, 'binary', (err) => {
-            if (err) { throw err; }
-            console.log(`File: ${data.name} saved.`);
-            res.send(200, `File: ${data.name} saved.`);
-        });
+        dpBox.fileHandler.getFile(fileID).then(function(doc) {
+            const fs = require('fs');
+            let data = doc;
+            fs.writeFile(data.name, data.fileBinary, 'binary', (err) => {
+                if (err) { throw err; }
+                console.log(`File: ${data.name} saved.`);
+                res.send(200, `File: ${data.name} saved.`);
+            });
     }).catch(function(err) {
-        res.send(500, err);
+        res.send(500, err.message);
     });
-    
 });
 app.post('/upload', (req, res) => {
     if (req.files.doc && req.body.filePath) {
