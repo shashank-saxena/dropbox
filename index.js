@@ -89,32 +89,57 @@ app.use(fileUpload({
 }));
 
 app.use(express.json());
-app.use(express.urlencoded({extended: true}));
+app.use(express.urlencoded({ extended: true }));
 
 app.get('/', (req, res) => {
     let fileID = req.body.id;
-        dpBox.fileHandler.getFile(fileID).then(function(doc) {
-            const fs = require('fs');
-            let data = doc;
-            fs.writeFile(data.name, data.fileBinary, 'binary', (err) => {
-                if (err) { throw err; }
-                console.log(`File: ${data.name} saved.`);
-                res.send(200, `File: ${data.name} saved.`);
-            });
-    }).catch(function(err) {
+    dpBox.fileHandler.getFile(fileID).then(function (doc) {
+        const fs = require('fs');
+        let data = doc;
+        fs.writeFile(data.name, data.fileBinary, 'binary', (err) => {
+            if (err) { throw err; }
+            console.log(`File: ${data.name} saved.`);
+            res.send(200, `File: ${data.name} saved.`);
+        });
+    }).catch(function (err) {
         res.send(500, err.message);
     });
 });
 app.post('/upload', (req, res) => {
-    if (req.files.doc && req.body.filePath) {
-        dpBox.fileHandler.uploadFile(req.body.filePath, req.files.doc).then(function(docJSon) {
-            res.send(200, docJSon);
-        }).catch(function(err) {
-            res.send(500, err);
-        });
-    } else {
-        res.send(500, "error");
-    }
+    dpBox.fileHandler.uploadFile(req.body.filePath, req.files.doc).then(function (docJSon) {
+        res.send(200, docJSon);
+    }).catch(function (err) {
+        res.send(500, err);
+    });
 })
+
+app.delete('/delete', (req, res) => {
+    let filePath = req.body.filePath;
+    dpBox.fileHandler.deleteFile(filePath).then(function (docJSon) {
+        res.send(200, docJSon);
+    }).catch(function (err) {
+        res.send(500, err.message);
+    });
+});
+
+const redirectUri = `http://localhost:3000/auth`;
+app.get('/oauth', (req, res) => {
+    dpBox.fileHandler.getAuthUrl(redirectUri).then(function (authUrl) {
+        res.writeHead(302, { Location: authUrl });
+        res.end();
+    }).catch(function (err) {
+        res.send(500, err.message);
+    });
+});
+
+app.get('/auth', (req, res) => { // eslint-disable-line no-unused-vars
+    const { code } = req.query;
+    console.log(`code:${code}`);
+    dpBox.fileHandler.getTokenFromRedirectCode(redirectUri, code).then(function (tokenJson) {
+        res.send(200, tokenJson);
+    }).catch(function (err) {
+        res.send(500, err.message);
+    });
+});
 
 app.listen(process.env.PORT || port);
